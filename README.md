@@ -22,3 +22,9 @@ _(We need to put a lot of computing power into making a block - this process is 
 **Section-3 - the solution:**
 
 - Transactions to be signed with a private and public key, that way we can only spend coins in a wallet if you have the private key of it
+
+_Notes:_
+
+- Private and public key are both unique.
+- The public key is freely shareable with anyone. It's the address of your wallet.
+- The private key on the other hand is used to sign transactions. It proves that the owner of the wallet is taking money out of it. _It should be kept secret so only you can spend your coins._
