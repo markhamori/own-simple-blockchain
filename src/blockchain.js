@@ -1,4 +1,6 @@
 const SHA256 = require("crypto-js/sha256");
+const EC = require("elliptic").ec;
+const ec = new EC("secp256k1");
 
 // Create transactions class
 class Transaction {
@@ -6,6 +8,35 @@ class Transaction {
     this.fromAddress = fromAddress;
     this.toAddress = toAddress;
     this.amount = amount;
+  }
+
+  // Create the hash what we will going to sign with our private key
+  calculateHash() {
+    return SHA256(this.fromAddress + this.toAddress + this.amount).toString();
+  }
+
+  // signingKey is what we've got from our elliptic library (from keygenerator.js)
+  signTransaction(signingKey) {
+    // Check if the public key equals the from address
+    if (signingKey.getPublic("hex") !== this.fromAddress) {
+      throw new Error("You cannot sign transactions fro other wallets!");
+    }
+
+    const hashTx = this.calculateHash();
+    const sig = signingKey.sign(hashTx, "base64");
+    // Store the signature into this transaction
+    this.signature = sig.toDER("hex");
+  }
+
+  isValid() {
+    if (this.fromAddress === null) return true;
+
+    if (!this.signature || this.signature.length === 0) {
+      throw new Error("No signature in this transaction");
+    }
+
+    const publicKey = ec.keyFromPublic(this.fromAddress, "hex");
+    return publicKey.verify(this.calculateHash(), this.signature);
   }
 }
 
@@ -111,23 +142,5 @@ class Blockchain {
   }
 }
 
-let HMARTXCoin = new Blockchain();
-
-HMARTXCoin.createTransaction(new Transaction("address1", "address2", 100));
-HMARTXCoin.createTransaction(new Transaction("address2", "address1", 50));
-
-console.log("\n Starting the miner...");
-HMARTXCoin.minePendingTransactions("hmartx-address");
-
-console.log(
-  "\nBalance of hmartx is",
-  HMARTXCoin.getBalanceOfAddress("hmartx-address")
-);
-
-console.log("\n Starting the miner again...");
-HMARTXCoin.minePendingTransactions("hmartx-address");
-
-console.log(
-  "\nBalance of hmartx is",
-  HMARTXCoin.getBalanceOfAddress("hmartx-address")
-);
+module.exports.Blockchain = Blockchain;
+module.exports.Transaction = Transaction;
