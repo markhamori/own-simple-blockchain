@@ -28,6 +28,7 @@ class Transaction {
     this.signature = sig.toDER("hex");
   }
 
+  // Validation check between the transactions
   isValid() {
     if (this.fromAddress === null) return true;
 
@@ -43,14 +44,12 @@ class Transaction {
 class Block {
   constructor(timestamp, transactions, previousHash = "") {
     this.timestamp = timestamp;
-    // Modify the block to supports multiple transactions
     this.transactions = transactions;
     this.previousHash = previousHash;
     this.hash = this.calculateHash();
     this.nonce = 0;
   }
 
-  // Use sha-256 library for hashing
   calculateHash() {
     return SHA256(
       this.index +
@@ -61,7 +60,6 @@ class Block {
     ).toString();
   }
 
-  // With this function we want that our block's hash starts with a certain amount zero's
   mineBlock(difficulty) {
     while (
       this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")
@@ -71,6 +69,17 @@ class Block {
     }
 
     console.log("Block mined: " + this.hash);
+  }
+
+  // Create a method to verify all the transactions in the current block
+  hasValidTransactions() {
+    for (const tx of this.transactions) {
+      if (!tx.isValid()) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }
 
@@ -91,6 +100,13 @@ class Blockchain {
   }
 
   minePendingTransactions(miningRewardAddress) {
+    const rewardTx = new Transaction(
+      null,
+      miningRewardAddress,
+      this.miningReward
+    );
+    this.pendingTransactions.push(rewardTx);
+
     let block = new Block(Date.now(), this.pendingTransactions);
     block.mineBlock(this.difficulty);
 
@@ -102,7 +118,17 @@ class Blockchain {
     ];
   }
 
-  createTransaction(transaction) {
+  addTransaction(transaction) {
+    // Check if there from and to address
+    if (!transaction.fromAddress || !transaction.toAddress) {
+      throw new Error("Transaction must include from and to address");
+    }
+
+    // Check if the transaction is a valid transactions
+    if (!transaction.isValid()) {
+      throw new Error("Cannot add invalid transaction to chain");
+    }
+
     this.pendingTransactions.push(transaction);
   }
 
@@ -128,6 +154,11 @@ class Blockchain {
     for (let i = 1; i < this.chain.length; i++) {
       const currentBlock = this.chain[i];
       const previousHash = this.chain[i - 1];
+
+      // Check that all of the transactions are valid
+      if (!currentBlock.hasValidTransactions()) {
+        return false;
+      }
 
       if (currentBlock.hash !== currentBlock.calculateHash()) {
         return false;

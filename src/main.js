@@ -1,22 +1,26 @@
 const { Blockchain, Transaction } = require("./blockchain");
+const EC = require("elliptic").ec;
+const ec = new EC("secp256k1");
+
+const myKey = ec.keyFromPrivate(
+  "0ed993ae72f93245ac6ef6933fa909975aa31c4bc88d9a84bb0e08ed4a5f812c"
+);
+const myWalletAddress = myKey.getPublic("hex");
 
 let HMARTXCoin = new Blockchain();
 
-HMARTXCoin.createTransaction(new Transaction("address1", "address2", 100));
-HMARTXCoin.createTransaction(new Transaction("address2", "address1", 50));
+const tx1 = new Transaction(myWalletAddress, "public key goes here", 10);
+tx1.signTransaction(myKey);
+HMARTXCoin.addTransaction(tx1);
 
 console.log("\n Starting the miner...");
-HMARTXCoin.minePendingTransactions("hmartx-address");
+HMARTXCoin.minePendingTransactions(myWalletAddress);
 
 console.log(
   "\nBalance of hmartx is",
-  HMARTXCoin.getBalanceOfAddress("hmartx-address")
+  HMARTXCoin.getBalanceOfAddress(myWalletAddress)
 );
 
-console.log("\n Starting the miner again...");
-HMARTXCoin.minePendingTransactions("hmartx-address");
+HMARTXCoin.chain[1].transactions[0].amount = 1;
 
-console.log(
-  "\nBalance of hmartx is",
-  HMARTXCoin.getBalanceOfAddress("hmartx-address")
-);
+console.log("Is chain valid", HMARTXCoin.isChainValid());
